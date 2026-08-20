@@ -171,7 +171,14 @@ export interface Database {
           updated_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["properties"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "properties_customer_id_fkey";
+            columns: ["customer_id"];
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       solar_systems: {
         Row: {
@@ -211,7 +218,14 @@ export interface Database {
           updated_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["solar_systems"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "solar_systems_property_id_fkey";
+            columns: ["property_id"];
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       partners: {
         Row: {
@@ -299,7 +313,15 @@ export interface Database {
           updated_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["employees"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "employees_profile_id_fkey";
+            columns: ["profile_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+            isOneToOne: true;
+          },
+        ];
       };
       crews: {
         Row: {
@@ -351,7 +373,20 @@ export interface Database {
           updated_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["crew_members"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "crew_members_crew_id_fkey";
+            columns: ["crew_id"];
+            referencedRelation: "crews";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "crew_members_employee_id_fkey";
+            columns: ["employee_id"];
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       job_status_transitions: {
         Row: { from_status: JobStatus; to_status: JobStatus };
@@ -420,7 +455,44 @@ export interface Database {
         // database enforces this regardless (UPDATE on the status column is
         // revoked for all client roles) -- this type just mirrors that.
         Update: Partial<Omit<Database["public"]["Tables"]["jobs"]["Insert"], "status">>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "jobs_property_id_fkey";
+            columns: ["property_id"];
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jobs_solar_system_id_fkey";
+            columns: ["solar_system_id"];
+            referencedRelation: "solar_systems";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jobs_job_type_id_fkey";
+            columns: ["job_type_id"];
+            referencedRelation: "job_types";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jobs_partner_id_fkey";
+            columns: ["partner_id"];
+            referencedRelation: "partners";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jobs_assigned_crew_id_fkey";
+            columns: ["assigned_crew_id"];
+            referencedRelation: "crews";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "jobs_assigned_employee_id_fkey";
+            columns: ["assigned_employee_id"];
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       job_status_history: {
         Row: {
@@ -442,7 +514,14 @@ export interface Database {
           reason?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["job_status_history"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "job_status_history_job_id_fkey";
+            columns: ["job_id"];
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       job_events: {
         Row: {
@@ -464,7 +543,20 @@ export interface Database {
           event_data?: Record<string, unknown>;
         };
         Update: Partial<Database["public"]["Tables"]["job_events"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "job_events_job_id_fkey";
+            columns: ["job_id"];
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_events_actor_id_fkey";
+            columns: ["actor_id"];
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       job_assignments: {
         Row: {
@@ -488,7 +580,26 @@ export interface Database {
           created_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["job_assignments"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "job_assignments_job_id_fkey";
+            columns: ["job_id"];
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_assignments_employee_id_fkey";
+            columns: ["employee_id"];
+            referencedRelation: "employees";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "job_assignments_crew_id_fkey";
+            columns: ["crew_id"];
+            referencedRelation: "crews";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       photos: {
         Row: {
@@ -510,7 +621,14 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["photos"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "photos_job_id_fkey";
+            columns: ["job_id"];
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       documents: {
         Row: {
@@ -532,7 +650,14 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["documents"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "documents_job_id_fkey";
+            columns: ["job_id"];
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       notes: {
         Row: {
@@ -553,7 +678,14 @@ export interface Database {
         // policy) -- Office/Admin correct a mistake by deleting and
         // re-adding, not by editing in place.
         Update: Partial<Database["public"]["Tables"]["notes"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "notes_job_id_fkey";
+            columns: ["job_id"];
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       communications: {
         Row: {
@@ -577,7 +709,20 @@ export interface Database {
           logged_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["communications"]["Insert"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "communications_customer_id_fkey";
+            columns: ["customer_id"];
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "communications_job_id_fkey";
+            columns: ["job_id"];
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       audit_log: {
         Row: {
@@ -616,6 +761,48 @@ export interface Database {
           | "created_by"
           | "updated_by"
         >;
+        Relationships: [];
+      };
+      // Deliberately not `Database["public"]["Tables"]["jobs"]["Row"] & {...}`
+      // -- see the file header: intersection types don't satisfy the
+      // Record<string, unknown> constraint Supabase's client requires.
+      jobs_list_view: {
+        Row: {
+          id: string;
+          job_number: number;
+          property_id: string;
+          solar_system_id: string | null;
+          job_type_id: string | null;
+          status: JobStatus;
+          priority: JobPriority;
+          source: JobSource | null;
+          partner_id: string | null;
+          title: string;
+          description: string | null;
+          appointment_date: string | null;
+          appointment_start_time: string | null;
+          appointment_end_time: string | null;
+          appointment_window: string | null;
+          assigned_crew_id: string | null;
+          assigned_employee_id: string | null;
+          scheduling_notes: string | null;
+          estimated_amount: number | null;
+          approved_amount: number | null;
+          invoice_amount: number | null;
+          payment_status: PaymentStatus;
+          created_at: string;
+          created_by: string | null;
+          updated_at: string;
+          updated_by: string | null;
+          customer_id: string;
+          customer_first_name: string;
+          customer_last_name: string;
+          property_address_line1: string;
+          property_city: string;
+          property_state: string;
+          assigned_crew_name: string | null;
+          job_type_label: string | null;
+        };
         Relationships: [];
       };
     };
