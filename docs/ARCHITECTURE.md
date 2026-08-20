@@ -90,6 +90,38 @@ Phase 0 -- `jobs`/`job_events` are indexed for the query patterns a command-cent
 in" is intended to be derived from `job_events` timestamps rather than a dedicated check-in
 feature, at least initially; revisit if that proves too indirect in practice.
 
+## Phase 1 notes
+
+**`jobs_crew_view` hardened (migration 0013).** Its original Phase 0 definition used
+`security_invoker = true`, which sounded safer but wasn't: RLS is row-level, not column-level, so
+the base `jobs` table's SELECT policy already let a crew member read every column (including
+financials) of their own assigned jobs directly -- the view only hid those columns for callers who
+chose to use it. Fixed by making the view own its row-filtering logic and run with the view
+owner's privileges (so it can enforce a safe column list regardless of table grants), and removing
+crew's direct SELECT access to the base `jobs` table entirely. Found and fixed while building the
+Phase 1 job list, before any crew-facing UI existed to depend on the old behavior.
+
+**`jobs_list_view` (migration 0014).** A joined, flattened view (job + customer name + property
+address + crew name + job type label) backing the office job list, so search/sort/filter can use
+simple single-table PostgREST calls instead of fragile embedded-resource query syntax across four
+tables. `security_invoker = true` is correct here (unlike the crew view) -- only roles that
+already have full column access to `jobs` (Owner/Admin/Office/QA) ever query it.
+
+**Relationship metadata added to `src/types/database.ts`.** The bootstrap Database type initially
+had empty `Relationships: []` for every table. Supabase's client needs real foreign-key metadata
+there to type-check embedded/joined `.select()` calls (e.g. `jobs.select("*, property:properties(...)")`)
+correctly -- without it, every embedded select silently typed as `SelectQueryError`. Populated to
+match the actual FK constraints in the migrations (Postgres's default `<table>_<column>_fkey`
+naming). Regenerating this file from a live project (`docs/DATABASE.md`) will produce the same
+metadata automatically.
+
+**`src/lib/permissions.ts`** mirrors the RLS role-helper functions for the UI layer only -- hiding
+a button the database would reject anyway is better UX, but it is not itself a security boundary.
+RLS remains the only thing actually enforcing access.
+
+**Financial fields, `job_assignments`, and status/notes/documents/photos UI are still out of
+scope**, per the approved MVP boundaries -- see below.
+
 ## What's deliberately not built yet
 
 Per the approved MVP scope: AI operations assistant, accounting/invoicing logic or UI, customer
@@ -98,12 +130,15 @@ some of these (financials on `jobs`); there is no UI or business logic behind th
 
 ## Roadmap
 
-- **Phase 0 -- Foundation** (this phase): Next.js scaffold, Supabase schema + RLS, GitHub ->
-  Vercel CI/CD, base auth, design system foundation.
-- **Phase 1 -- Core data model**: Customers, Properties, Solar Systems, Employees, Crews -- CRUD
-  with role-based access.
-- **Phase 2 -- Job workflow engine**: Jobs, status transitions, status history, crew assignment
-  UI.
+- **Phase 0 -- Foundation** (complete): Next.js scaffold, Supabase schema + RLS, GitHub -> Vercel
+  CI/CD, base auth, design system foundation.
+- **Phase 1 -- Core operations CRUD** (complete): full navigation and CRUD for Customers,
+  Properties, Solar Systems, Employees, Crews, Partners, and Jobs (including the status workflow
+  and a scalable job list) under `/dashboard/*`. See "Phase 1 notes" below for decisions made
+  while building it.
+- **Phase 2 -- Job workflow engine**: (the core of this -- transitions, status history, timeline
+  events -- landed early, as part of Phase 0/1). Remaining: richer scheduling conflict detection,
+  reschedule history UI.
 - **Phase 3 -- Crew mobile interface**: responsive job view, status updates, photo upload from the
   field.
 - **Phase 4 -- QA & management dashboard**: closeout flow, live status board for the office.

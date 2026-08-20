@@ -27,35 +27,46 @@ page will render, but auth calls will fail.
 
 ## Scripts
 
-| Command                | Purpose                                          |
-| ----------------------- | ------------------------------------------------ |
-| `npm run dev`           | Start the dev server                             |
-| `npm run build`         | Production build                                 |
-| `npm run start`         | Run the production build                         |
-| `npm run lint`          | ESLint                                            |
-| `npm run typecheck`     | `tsc --noEmit`                                   |
-| `npm run format`        | Prettier, writes changes                         |
-| `npm run format:check`  | Prettier, check only (used in CI)                |
+| Command                | Purpose                           |
+| ---------------------- | --------------------------------- |
+| `npm run dev`          | Start the dev server              |
+| `npm run build`        | Production build                  |
+| `npm run start`        | Run the production build          |
+| `npm run lint`         | ESLint                            |
+| `npm run typecheck`    | `tsc --noEmit`                    |
+| `npm run format`       | Prettier, writes changes          |
+| `npm run format:check` | Prettier, check only (used in CI) |
 
 ## Project structure
 
 ```
 src/
   app/
-    (auth)/       Sign-in and other unauthenticated routes
-    (dashboard)/  Office/Admin-facing routes (protected)
-    (crew)/       Crew-facing routes (protected)
-  components/     Shared UI components
+    (auth)/               Sign-in and other unauthenticated routes
+    (dashboard)/
+      dashboard/          Office/Admin-facing routes, protected -- /dashboard/*
+        jobs/ customers/ properties/ solar-systems/ employees/ crews/ partners/
+    (crew)/                Crew-facing routes (protected) -- still a stub, Phase 3
+  components/
+    ui/            shadcn/ui primitives
+    nav/           Sidebar, mobile nav, user menu
+    data-table/    Reusable search/sort/pagination controls for list pages
+    forms/         Combobox, field error, toggle-active button
+    <entity>/      Entity-specific form/detail components (jobs, customers, ...)
   lib/
-    supabase/     Browser/server Supabase clients, session-refresh helper
-    constants.ts  Labels for text+CHECK-constraint category columns
-    utils.ts      cn() class-merging helper (shadcn/ui)
-  server/         Server Actions and other server-only logic, by feature
+    supabase/      Browser/server Supabase clients, session-refresh helper
+    constants.ts   Labels for text+CHECK-constraint category columns
+    permissions.ts UI-layer role helpers (NOT the security boundary -- RLS is)
+    search-params.ts  Pagination/sort/filter URL-param helpers
+    postgrest.ts   Escaping helper for user search input in PostgREST filters
+    format.ts      Timezone-safe date-only formatting
+    utils.ts       cn() class-merging helper (shadcn/ui)
+  server/          Server Actions + query functions, one folder per entity
   types/
-    database.ts   Hand-written Database type (see the file header before editing)
-  proxy.ts        Session refresh + protected-route redirect (Next's middleware layer)
+    database.ts    Hand-written Database type (see the file header before editing)
+  proxy.ts         Session refresh + protected-route redirect (Next's middleware layer)
 supabase/
-  migrations/     The full database schema, in numbered, reviewable files
+  migrations/      The full database schema, in numbered, reviewable files
 docs/
   ARCHITECTURE.md     System design and the decisions behind it
   DATABASE.md         Schema, relationships, RLS model, how to apply migrations
@@ -65,5 +76,8 @@ docs/
 
 ## Status
 
-**Phase 0 (Foundation) — complete.** Auth scaffolding only; no feature UI yet. See
-`docs/ARCHITECTURE.md` for the phased roadmap.
+**Phase 0 (Foundation) and Phase 1 (Core operations CRUD) — complete.** The office/admin
+dashboard (`/dashboard/*`) has full navigation and CRUD for Customers, Properties, Solar Systems,
+Employees, Crews, Partners, and Jobs, including the job status workflow and a scalable,
+server-filtered/sorted/paginated job list. The crew-facing mobile UI (`/crew`) is still a stub --
+see `docs/ARCHITECTURE.md` for the phased roadmap.

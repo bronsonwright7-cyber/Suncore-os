@@ -1,0 +1,164 @@
+"use server";
+
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import type { JobPriority, JobSource, JobStatus } from "@/types/database";
+
+export interface FormState {
+  error?: string;
+  fieldErrors?: Record<string, string[]>;
+}
+
+const optionalUuid = z
+  .string()
+  .trim()
+  .transform((value) => (value === "" ? undefined : value))
+  .refine((value) => value === undefined || z.uuid().safeParse(value).success, "Invalid selection");
+
+const optionalText = z
+  .string()
+  .trim()
+  .transform((value) => (value === "" ? null : value));
+
+const jobSchema = z.object({
+  property_id: z.uuid("Select a property"),
+  solar_system_id: optionalUuid,
+  job_type_id: optionalUuid,
+  priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]),
+  source: z.union([
+    z.enum([
+      "roofing_partner",
+      "solar_company",
+      "homeowner",
+      "warranty",
+      "referral",
+      "internal",
+      "other",
+    ]),
+    z.literal(""),
+  ]),
+  partner_id: optionalUuid,
+  title: z.string().trim().min(1, "Title is required").max(300),
+  description: optionalText,
+  appointment_date: optionalText,
+  appointment_start_time: optionalText,
+  appointment_end_time: optionalText,
+  appointment_window: optionalText,
+  assigned_crew_id: optionalUuid,
+  assigned_employee_id: optionalUuid,
+  scheduling_notes: optionalText,
+});
+
+function parseForm(formData: FormData) {
+  return jobSchema.safeParse({
+    property_id: formData.get("property_id") ?? "",
+    solar_system_id: formData.get("solar_system_id") ?? "",
+    job_type_id: formData.get("job_type_id") ?? "",
+    priority: formData.get("priority") || "NORMAL",
+    source: formData.get("source") ?? "",
+    partner_id: formData.get("partner_id") ?? "",
+    title: formData.get("title") ?? "",
+    description: formData.get("description") ?? "",
+    appointment_date: formData.get("appointment_date") ?? "",
+    appointment_start_time: formData.get("appointment_start_time") ?? "",
+    appointment_end_time: formData.get("appointment_end_time") ?? "",
+    appointment_window: formData.get("appointment_window") ?? "",
+    assigned_crew_id: formData.get("assigned_crew_id") ?? "",
+    assigned_employee_id: formData.get("assigned_employee_id") ?? "",
+    scheduling_notes: formData.get("scheduling_notes") ?? "",
+  });
+}
+
+function toRow(data: z.infer<typeof jobSchema>) {
+  return {
+    property_id: data.property_id,
+    solar_system_id: data.solar_system_id ?? null,
+    job_type_id: data.job_type_id ?? null,
+    priority: data.priority as JobPriority,
+    source: (data.source || null) as JobSource | null,
+    partner_id: data.partner_id ?? null,
+    title: data.title,
+    description: data.description,
+    appointment_date: data.appointment_date,
+    appointment_start_time: data.appointment_start_time,
+    appointment_end_time: data.appointment_end_time,
+    appointment_window: data.appointment_window,
+    assigned_crew_id: data.assigned_crew_id ?? null,
+    assigned_employee_id: data.assigned_employee_id ?? null,
+    scheduling_notes: data.scheduling_notes,
+  };
+}
+
+export async function createJob(
+  _prevState: FormState | undefined,
+  formData: FormData,
+): Promise<FormState> {
+  const parsed = parseForm(formData);
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jobs")
+    .insert(toRow(parsed.data))
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return { error: error?.message ?? "Failed to create job." };
+  }
+
+  revalidatePath("/dashboard/jobs");
+  redirect(`/dashboard/jobs/${data.id}`);
+}
+
+export async function updateJob(
+  id: string,
+  _prevState: FormState | undefined,
+  formData: FormData,
+): Promise<FormState> {
+  const parsed = parseForm(formData);
+  if (!parsed.success) {
+    return { fieldErrors: parsed.error.flatten().fieldErrors };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("jobs").update(toRow(parsed.data)).eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/dashboard/jobs");
+  revalidatePath(`/dashboard/jobs/${id}`);
+  redirect(`/dashboard/jobs/${id}`);
+}
+
+export interface TransitionState {
+  error?: string;
+  success?: number;
+}
+
+export async function transitionJobStatus(
+  jobId: string,
+  toStatus: JobStatus,
+  reason: string | null,
+): Promise<TransitionState> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("fn_transition_job_status", {
+    p_job_id: jobId,
+    p_to_status: toStatus,
+    p_reason: reason,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/dashboard/jobs");
+  revalidatePath(`/dashboard/jobs/${jobId}`);
+  return { success: Date.now() };
+}

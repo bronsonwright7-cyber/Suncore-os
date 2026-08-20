@@ -3,12 +3,12 @@
 Copy `.env.example` to `.env.local` for local development and fill in real values. `.env.local` is
 git-ignored -- never commit it or any file with real credentials.
 
-| Variable | Where to get it | Exposed to browser? |
-| --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase dashboard -> Project Settings -> API -> Project URL | Yes |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same page -> anon/public key | Yes -- safe by design; all access is still governed by RLS |
-| `SUPABASE_SERVICE_ROLE_KEY` | Same page -> service_role key | **No -- server-only** |
-| `NEXT_PUBLIC_SITE_URL` | Your app's base URL (`http://localhost:3000` locally; the Vercel/custom domain in production) | Yes |
+| Variable                        | Where to get it                                                                               | Exposed to browser?                                        |
+| ------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase dashboard -> Project Settings -> API -> Project URL                                  | Yes                                                        |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same page -> anon/public key                                                                  | Yes -- safe by design; all access is still governed by RLS |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Same page -> service_role key                                                                 | **No -- server-only**                                      |
+| `NEXT_PUBLIC_SITE_URL`          | Your app's base URL (`http://localhost:3000` locally; the Vercel/custom domain in production) | Yes                                                        |
 
 ## The service-role key
 
