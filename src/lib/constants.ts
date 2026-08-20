@@ -9,6 +9,7 @@ import type {
   PaymentStatus,
   EmployeeType,
   UserRole,
+  PartnerType,
 } from "@/types/database";
 
 export const JOB_PRIORITIES: { value: JobPriority; label: string }[] = [
@@ -49,6 +50,12 @@ export const USER_ROLES: { value: UserRole; label: string }[] = [
   { value: "CREW_LEAD", label: "Crew Lead" },
   { value: "CREW_MEMBER", label: "Crew Member" },
   { value: "QA", label: "QA" },
+];
+
+export const PARTNER_TYPES: { value: PartnerType; label: string }[] = [
+  { value: "roofing_partner", label: "Roofing Partner" },
+  { value: "solar_company", label: "Solar Company" },
+  { value: "other", label: "Other" },
 ];
 
 export const JOB_WORKFLOW_STATUSES = [
