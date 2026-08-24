@@ -23,6 +23,15 @@ export async function signInWithPassword(
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    // Temporary diagnostic logging (server-side only -- never sent to the
+    // browser) to identify the real cause of production sign-in failures.
+    // Remove once the root cause is confirmed.
+    console.error("[signInWithPassword] auth error", {
+      message: error.message,
+      code: error.code,
+      status: error.status,
+      name: error.name,
+    });
     return { error: "Invalid email or password." };
   }
 
