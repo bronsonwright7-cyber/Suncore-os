@@ -138,6 +138,36 @@ asking" once, reused across every policy.
   access to `jobs` directly, so there's no column-hiding requirement, only normal per-row RLS.
 - **Hard deletes are mostly disabled at the database level**, not just missing from the UI -- see
   "What's deliberately not built yet" in `docs/ARCHITECTURE.md`.
+- **`created_by`/`updated_by` are stamped by trigger, not by application code** -- see
+  "Attribution" below.
+
+## Attribution (`created_by` / `updated_by`)
+
+`customers`, `properties`, `solar_systems`, `partners`, `employees`, `crews`, `crew_members`,
+`jobs`, and `job_assignments` (`created_by` only -- see below) carry `created_by`/`updated_by`
+columns. As of `0015_attribution_triggers.sql`, these are populated automatically by a `BEFORE
+INSERT OR UPDATE` trigger (`fn_stamp_attribution`, or `fn_stamp_created_by` for the one
+insert-only table) -- **no Server Action sets them**, and none should:
+
+- **Insert:** `created_by` and `updated_by` are set to `auth.uid()`.
+- **Update:** `updated_by` is set to `auth.uid()`; `created_by` is reset to its existing value
+  unconditionally, i.e. it's immutable after insert.
+- **Anti-spoofing:** whenever `auth.uid()` resolves to a real caller (every ordinary
+  authenticated request), the trigger overwrites whatever value the client sent for these
+  columns -- a client cannot attribute a row to a different user by passing an arbitrary
+  `created_by`/`updated_by` in the insert/update payload.
+- **`auth.uid()` is null:** only possible in a trusted server-side context with no end-user
+  session (e.g. an admin/service-role backfill script) -- there is no path for an ordinary
+  `authenticated` request to produce a null `auth.uid()`. In that case the trigger preserves
+  whatever value the caller supplied, so trusted server code can still attribute
+  historical/imported rows explicitly.
+- `job_assignments` has `created_by` but no `updated_by`/`updated_at` (it's insert-only today --
+  see the `jobs`/`job_assignments` table note above); it uses the insert-only
+  `fn_stamp_created_by` trigger instead of `fn_stamp_attribution`, so a future update to that
+  table can't hit a missing-column error.
+- This also fixed `job_events`/`job_status_history` attribution for the `'created'` event, which
+  is derived from `jobs.created_by` (`fn_log_job_created_event` in `0008_triggers.sql`) -- that
+  event's `actor_id`/`changed_by` was silently null before this migration.
 
 ## Indexes
 

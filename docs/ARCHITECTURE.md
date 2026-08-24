@@ -122,6 +122,15 @@ RLS remains the only thing actually enforcing access.
 **Financial fields, `job_assignments`, and status/notes/documents/photos UI are still out of
 scope**, per the approved MVP boundaries -- see below.
 
+**Attribution fix (migration 0015).** Found during a pre-Vercel AI-readiness audit: `created_by`/
+`updated_by` columns existed since Phase 0 but no Server Action ever set them, so they were always
+`null`. Fixed with a `BEFORE INSERT OR UPDATE` trigger (`fn_stamp_attribution`, see
+`docs/DATABASE.md`) that stamps both from `auth.uid()` and ignores client-supplied values for
+these columns whenever a real caller identity exists -- application code was not changed and
+should not set these fields itself. No RLS policy, grant, or job-status-transition behavior was
+touched; `fn_transition_job_status()` already set `updated_by` correctly and is unaffected (the
+trigger recomputes the same value).
+
 ## What's deliberately not built yet
 
 Per the approved MVP scope: AI operations assistant, accounting/invoicing logic or UI, customer
