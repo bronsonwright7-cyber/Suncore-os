@@ -72,3 +72,94 @@ export async function searchCustomersForPicker(q: string | undefined) {
   if (error) throw new Error(error.message);
   return data ?? [];
 }
+
+function normalizePhone(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function normalizeName(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export interface DuplicateCustomerCandidate {
+  firstName: string | null;
+  lastName: string | null;
+  phones: string[];
+  emails: string[];
+}
+
+export interface DuplicateCustomerMatch {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  phone: string | null;
+  matchReasons: Array<"name" | "phone" | "email">;
+}
+
+/**
+ * AI Intake's V1 duplicate check (see PHASE C requirements). Reuses the same
+ * cookie-scoped client and ilike-escaping as searchCustomersForPicker above,
+ * just widening the OR filter to also match by candidate phone/email, then
+ * confirms + labels each candidate row in JS against normalized name/phone/
+ * email -- no pg_trgm, no new migration.
+ */
+export async function findPossibleDuplicateCustomers(
+  candidate: DuplicateCustomerCandidate,
+): Promise<DuplicateCustomerMatch[]> {
+  const orParts: string[] = [];
+
+  if (candidate.firstName?.trim() && candidate.lastName?.trim()) {
+    orParts.push(
+      `and(first_name.ilike.${escapeOrFilterValue(candidate.firstName.trim())},last_name.ilike.${escapeOrFilterValue(
+        candidate.lastName.trim(),
+      )})`,
+    );
+  }
+  for (const email of candidate.emails) {
+    if (email.trim()) orParts.push(`email.ilike.${escapeOrFilterValue(email.trim())}`);
+  }
+  for (const phone of candidate.phones) {
+    const digits = normalizePhone(phone);
+    if (digits.length >= 7) {
+      orParts.push(`phone.ilike.%${escapeOrFilterValue(digits.slice(-7))}%`);
+    }
+  }
+
+  if (orParts.length === 0) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .select("id, first_name, last_name, email, phone")
+    .or(orParts.join(","))
+    .limit(10);
+  if (error) throw new Error(error.message);
+
+  const normalizedEmails = new Set(candidate.emails.map(normalizeEmail));
+  const normalizedPhones = new Set(candidate.phones.map(normalizePhone));
+  const normalizedFullName =
+    candidate.firstName?.trim() && candidate.lastName?.trim()
+      ? normalizeName(`${candidate.firstName} ${candidate.lastName}`)
+      : null;
+
+  return (data ?? [])
+    .map((row): DuplicateCustomerMatch => {
+      const matchReasons: Array<"name" | "phone" | "email"> = [];
+      if (row.email && normalizedEmails.has(normalizeEmail(row.email))) {
+        matchReasons.push("email");
+      }
+      if (row.phone && normalizedPhones.has(normalizePhone(row.phone))) {
+        matchReasons.push("phone");
+      }
+      if (normalizedFullName && normalizeName(`${row.first_name} ${row.last_name}`) === normalizedFullName) {
+        matchReasons.push("name");
+      }
+      return { ...row, matchReasons };
+    })
+    .filter((row) => row.matchReasons.length > 0);
+}

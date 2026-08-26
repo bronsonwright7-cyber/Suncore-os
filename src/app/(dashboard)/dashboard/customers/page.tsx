@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { ClipboardPaste, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -38,12 +38,20 @@ export default async function CustomersPage({
           <p className="text-muted-foreground text-sm">{count} total</p>
         </div>
         {canManage ? (
-          <Button asChild>
-            <Link href="/dashboard/customers/new">
-              <Plus className="size-4" />
-              New Customer
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link href="/dashboard/intake">
+                <ClipboardPaste className="size-4" />
+                Paste to create
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard/customers/new">
+                <Plus className="size-4" />
+                New Customer
+              </Link>
+            </Button>
+          </div>
         ) : null}
       </div>
 

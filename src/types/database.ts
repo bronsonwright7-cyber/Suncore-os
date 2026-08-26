@@ -856,6 +856,21 @@ export interface Database {
         };
         Returns: { state: string; job_count: number; approx_revenue: number }[];
       };
+      fn_create_intake_records: {
+        Args: {
+          p_customer_id: string | null;
+          p_customer: Record<string, unknown> | null;
+          p_property: Record<string, unknown> | null;
+          p_solar_system: Record<string, unknown> | null;
+          p_job: Record<string, unknown> | null;
+        };
+        Returns: {
+          customer_id: string;
+          property_id: string;
+          solar_system_id: string | null;
+          job_id: string;
+        }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
