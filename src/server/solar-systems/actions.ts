@@ -51,7 +51,7 @@ const dateField = z
   .trim()
   .transform((value) => (value === "" ? null : value));
 
-const solarSystemSchema = z.object({
+export const solarSystemSchema = z.object({
   property_id: z.string().uuid("Select a property"),
   system_size_kw: numericField,
   panel_count: intField,
@@ -81,7 +81,9 @@ function parseForm(formData: FormData) {
   });
 }
 
-function toRow(data: z.infer<typeof solarSystemSchema>) {
+export type SolarSystemInput = z.infer<typeof solarSystemSchema>;
+
+function toRow(data: SolarSystemInput) {
   return {
     property_id: data.property_id,
     system_size_kw: data.system_size_kw,
@@ -97,6 +99,24 @@ function toRow(data: z.infer<typeof solarSystemSchema>) {
   };
 }
 
+/** Pure insert -- see insertCustomer in src/server/customers/actions.ts for why. */
+export async function insertSolarSystem(
+  input: SolarSystemInput,
+): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("solar_systems")
+    .insert(toRow(input))
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return { error: error?.message ?? "Failed to create solar system." };
+  }
+
+  return { id: data.id };
+}
+
 export async function createSolarSystem(
   _prevState: FormState | undefined,
   formData: FormData,
@@ -106,20 +126,14 @@ export async function createSolarSystem(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("solar_systems")
-    .insert(toRow(parsed.data))
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    return { error: error?.message ?? "Failed to create solar system." };
+  const result = await insertSolarSystem(parsed.data);
+  if ("error" in result) {
+    return { error: result.error };
   }
 
   revalidatePath("/dashboard/solar-systems");
   revalidatePath(`/dashboard/properties/${parsed.data.property_id}`);
-  redirect(`/dashboard/solar-systems/${data.id}`);
+  redirect(`/dashboard/solar-systems/${result.id}`);
 }
 
 export async function updateSolarSystem(

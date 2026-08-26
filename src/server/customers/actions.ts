@@ -21,13 +21,15 @@ export async function searchCustomersAction(query: string): Promise<ComboboxOpti
   }));
 }
 
-const customerSchema = z.object({
+export const customerSchema = z.object({
   first_name: z.string().trim().min(1, "First name is required").max(200),
   last_name: z.string().trim().min(1, "Last name is required").max(200),
   email: z.union([z.string().trim().email("Enter a valid email"), z.literal("")]),
   phone: z.string().trim().max(50),
   notes: z.string().trim().max(5000),
 });
+
+export type CustomerInput = z.infer<typeof customerSchema>;
 
 function parseForm(formData: FormData) {
   return customerSchema.safeParse({
@@ -39,6 +41,36 @@ function parseForm(formData: FormData) {
   });
 }
 
+/**
+ * Pure insert: validated input in, new row id (or an error) out. No
+ * FormData parsing, no redirect/revalidate -- shared by the createCustomer
+ * Server Action below and (in a later phase) AI intake's confirmed-record
+ * creation, so both go through this exact same validated, RLS-scoped,
+ * attribution-safe write path.
+ */
+export async function insertCustomer(
+  input: CustomerInput,
+): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("customers")
+    .insert({
+      first_name: input.first_name,
+      last_name: input.last_name,
+      email: input.email || null,
+      phone: input.phone || null,
+      notes: input.notes || null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return { error: error?.message ?? "Failed to create customer." };
+  }
+
+  return { id: data.id };
+}
+
 export async function createCustomer(
   _prevState: FormState | undefined,
   formData: FormData,
@@ -48,25 +80,13 @@ export async function createCustomer(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("customers")
-    .insert({
-      first_name: parsed.data.first_name,
-      last_name: parsed.data.last_name,
-      email: parsed.data.email || null,
-      phone: parsed.data.phone || null,
-      notes: parsed.data.notes || null,
-    })
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    return { error: error?.message ?? "Failed to create customer." };
+  const result = await insertCustomer(parsed.data);
+  if ("error" in result) {
+    return { error: result.error };
   }
 
   revalidatePath("/dashboard/customers");
-  redirect(`/dashboard/customers/${data.id}`);
+  redirect(`/dashboard/customers/${result.id}`);
 }
 
 export async function updateCustomer(

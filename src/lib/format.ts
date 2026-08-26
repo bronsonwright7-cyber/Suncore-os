@@ -11,3 +11,17 @@ export function formatDateOnly(value: string | null | undefined): string {
   if (!year || !month || !day) return value;
   return new Date(year, month - 1, day).toLocaleDateString();
 }
+
+/** Compact thousands-separated integer/decimal, e.g. 1284 -> "1,284". */
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 1 }).format(value);
+}
+
+/** Whole-dollar currency, e.g. 42500 -> "$42,500". */
+export function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}

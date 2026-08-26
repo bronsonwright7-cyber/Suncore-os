@@ -12,7 +12,7 @@ export interface FormState {
   fieldErrors?: Record<string, string[]>;
 }
 
-const propertySchema = z.object({
+export const propertySchema = z.object({
   customer_id: z.string().uuid("Select a customer"),
   address_line1: z.string().trim().min(1, "Address is required").max(300),
   address_line2: z.string().trim().max(300),
@@ -22,6 +22,8 @@ const propertySchema = z.object({
   country: z.string().trim().min(1, "Country is required").max(100),
   notes: z.string().trim().max(5000),
 });
+
+export type PropertyInput = z.infer<typeof propertySchema>;
 
 function parseForm(formData: FormData) {
   return propertySchema.safeParse({
@@ -36,6 +38,33 @@ function parseForm(formData: FormData) {
   });
 }
 
+/** Pure insert -- see insertCustomer in src/server/customers/actions.ts for why. */
+export async function insertProperty(
+  input: PropertyInput,
+): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("properties")
+    .insert({
+      customer_id: input.customer_id,
+      address_line1: input.address_line1,
+      address_line2: input.address_line2 || null,
+      city: input.city,
+      state: input.state,
+      postal_code: input.postal_code,
+      country: input.country,
+      notes: input.notes || null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return { error: error?.message ?? "Failed to create property." };
+  }
+
+  return { id: data.id };
+}
+
 export async function createProperty(
   _prevState: FormState | undefined,
   formData: FormData,
@@ -45,29 +74,14 @@ export async function createProperty(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("properties")
-    .insert({
-      customer_id: parsed.data.customer_id,
-      address_line1: parsed.data.address_line1,
-      address_line2: parsed.data.address_line2 || null,
-      city: parsed.data.city,
-      state: parsed.data.state,
-      postal_code: parsed.data.postal_code,
-      country: parsed.data.country,
-      notes: parsed.data.notes || null,
-    })
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    return { error: error?.message ?? "Failed to create property." };
+  const result = await insertProperty(parsed.data);
+  if ("error" in result) {
+    return { error: result.error };
   }
 
   revalidatePath("/dashboard/properties");
   revalidatePath(`/dashboard/customers/${parsed.data.customer_id}`);
-  redirect(`/dashboard/properties/${data.id}`);
+  redirect(`/dashboard/properties/${result.id}`);
 }
 
 export async function updateProperty(

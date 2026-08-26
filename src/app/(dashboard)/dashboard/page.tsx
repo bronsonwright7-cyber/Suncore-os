@@ -1,14 +1,16 @@
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NAV_ITEMS } from "@/components/nav/nav-items";
+import { canReadBroadly } from "@/lib/permissions";
 import { getCurrentUserWithProfile } from "@/server/auth/current-user";
 
 export default async function DashboardPage() {
   const session = await getCurrentUserWithProfile();
   const role = session?.profile?.role ?? null;
-  const sections = NAV_ITEMS.filter((item) => item.href !== "/dashboard").filter(
-    (item) => item.visible?.(role) ?? true,
-  );
+  const sections = NAV_ITEMS.filter(
+    (item) => item.href !== "/dashboard" && item.href !== "/dashboard/ask",
+  ).filter((item) => item.visible?.(role) ?? true);
 
   return (
     <div className="flex flex-col gap-6">
@@ -19,6 +21,24 @@ export default async function DashboardPage() {
           later phase. For now, jump into a section below.
         </p>
       </div>
+      {canReadBroadly(role) && (
+        <Link href="/dashboard/ask">
+          <Card className="border-primary/30 from-primary/5 hover:border-primary/60 bg-gradient-to-br to-transparent transition-colors">
+            <CardHeader className="flex-row items-center gap-4 space-y-0">
+              <div className="bg-primary text-primary-foreground flex size-11 shrink-0 items-center justify-center rounded-full">
+                <Sparkles className="size-5" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Ask Suncore AI</CardTitle>
+                <CardDescription>
+                  Ask natural-language questions about your jobs, revenue, crews, and customers --
+                  answered from real Suncore data, with charts and KPIs.
+                </CardDescription>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {sections.map((item) => {
           const Icon = item.icon;

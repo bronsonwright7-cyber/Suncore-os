@@ -815,6 +815,47 @@ export interface Database {
         };
         Returns: Database["public"]["Tables"]["jobs"]["Row"];
       };
+      fn_report_job_status_counts: {
+        Args: {
+          p_date_from?: string | null;
+          p_date_to?: string | null;
+        };
+        Returns: { status: JobStatus; job_count: number }[];
+      };
+      fn_report_jobs_completed_by_month: {
+        Args: {
+          p_status?: JobStatus;
+          p_months_back?: number;
+        };
+        Returns: { report_month: string; job_count: number }[];
+      };
+      fn_report_revenue_by_month: {
+        Args: {
+          p_months_back?: number;
+        };
+        Returns: { report_month: string; approx_revenue: number; closed_job_count: number }[];
+      };
+      fn_report_crew_completions: {
+        Args: {
+          p_date_from?: string | null;
+          p_date_to?: string | null;
+        };
+        Returns: { crew_id: string; crew_name: string; completed_count: number }[];
+      };
+      fn_report_customers_added_by_month: {
+        Args: {
+          p_months_back?: number;
+        };
+        Returns: { report_month: string; customer_count: number }[];
+      };
+      fn_report_jobs_by_state: {
+        Args: {
+          p_date_from?: string | null;
+          p_date_to?: string | null;
+          p_states?: string[] | null;
+        };
+        Returns: { state: string; job_count: number; approx_revenue: number }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

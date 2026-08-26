@@ -3,13 +3,14 @@ import {
   Handshake,
   HardHat,
   LayoutDashboard,
+  Sparkles,
   Sun,
   Users,
   UserSquare2,
   MapPin,
 } from "lucide-react";
 import type { UserRole } from "@/types/database";
-import { canViewPartners } from "@/lib/permissions";
+import { canReadBroadly, canViewPartners } from "@/lib/permissions";
 
 export interface NavItem {
   href: string;
@@ -20,6 +21,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard/ask", label: "Ask Suncore", icon: Sparkles, visible: canReadBroadly },
   { href: "/dashboard/jobs", label: "Jobs", icon: Briefcase },
   { href: "/dashboard/customers", label: "Customers", icon: Users },
   { href: "/dashboard/properties", label: "Properties", icon: MapPin },

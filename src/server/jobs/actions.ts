@@ -22,7 +22,7 @@ const optionalText = z
   .trim()
   .transform((value) => (value === "" ? null : value));
 
-const jobSchema = z.object({
+export const jobSchema = z.object({
   property_id: z.uuid("Select a property"),
   solar_system_id: optionalUuid,
   job_type_id: optionalUuid,
@@ -71,7 +71,9 @@ function parseForm(formData: FormData) {
   });
 }
 
-function toRow(data: z.infer<typeof jobSchema>) {
+export type JobInput = z.infer<typeof jobSchema>;
+
+function toRow(data: JobInput) {
   return {
     property_id: data.property_id,
     solar_system_id: data.solar_system_id ?? null,
@@ -91,6 +93,22 @@ function toRow(data: z.infer<typeof jobSchema>) {
   };
 }
 
+/** Pure insert -- see insertCustomer in src/server/customers/actions.ts for why. */
+export async function insertJob(input: JobInput): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jobs")
+    .insert(toRow(input))
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return { error: error?.message ?? "Failed to create job." };
+  }
+
+  return { id: data.id };
+}
+
 export async function createJob(
   _prevState: FormState | undefined,
   formData: FormData,
@@ -100,19 +118,13 @@ export async function createJob(
     return { fieldErrors: parsed.error.flatten().fieldErrors };
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("jobs")
-    .insert(toRow(parsed.data))
-    .select("id")
-    .single();
-
-  if (error || !data) {
-    return { error: error?.message ?? "Failed to create job." };
+  const result = await insertJob(parsed.data);
+  if ("error" in result) {
+    return { error: result.error };
   }
 
   revalidatePath("/dashboard/jobs");
-  redirect(`/dashboard/jobs/${data.id}`);
+  redirect(`/dashboard/jobs/${result.id}`);
 }
 
 export async function updateJob(
