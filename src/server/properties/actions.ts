@@ -1,29 +1,16 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { searchPropertiesForPicker } from "@/server/properties/queries";
+import { propertySchema, type PropertyInput } from "@/server/properties/schema";
 import type { ComboboxOption } from "@/components/forms/combobox";
 
 export interface FormState {
   error?: string;
   fieldErrors?: Record<string, string[]>;
 }
-
-export const propertySchema = z.object({
-  customer_id: z.string().uuid("Select a customer"),
-  address_line1: z.string().trim().min(1, "Address is required").max(300),
-  address_line2: z.string().trim().max(300),
-  city: z.string().trim().min(1, "City is required").max(200),
-  state: z.string().trim().min(1, "State is required").max(100),
-  postal_code: z.string().trim().min(1, "Postal code is required").max(20),
-  country: z.string().trim().min(1, "Country is required").max(100),
-  notes: z.string().trim().max(5000),
-});
-
-export type PropertyInput = z.infer<typeof propertySchema>;
 
 function parseForm(formData: FormData) {
   return propertySchema.safeParse({

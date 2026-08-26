@@ -1,10 +1,10 @@
 "use server";
 
-import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { searchCustomersForPicker } from "@/server/customers/queries";
+import { customerSchema, type CustomerInput } from "@/server/customers/schema";
 import type { ComboboxOption } from "@/components/forms/combobox";
 
 export interface FormState {
@@ -20,16 +20,6 @@ export async function searchCustomersAction(query: string): Promise<ComboboxOpti
     description: customer.email ?? undefined,
   }));
 }
-
-export const customerSchema = z.object({
-  first_name: z.string().trim().min(1, "First name is required").max(200),
-  last_name: z.string().trim().min(1, "Last name is required").max(200),
-  email: z.union([z.string().trim().email("Enter a valid email"), z.literal("")]),
-  phone: z.string().trim().max(50),
-  notes: z.string().trim().max(5000),
-});
-
-export type CustomerInput = z.infer<typeof customerSchema>;
 
 function parseForm(formData: FormData) {
   return customerSchema.safeParse({

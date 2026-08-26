@@ -14,10 +14,10 @@ import {
 } from "@/server/customers/queries";
 import { listActivePartnersForSelect } from "@/server/partners/queries";
 import { searchEmployeesForPicker } from "@/server/employees/queries";
-import { customerSchema } from "@/server/customers/actions";
-import { propertySchema } from "@/server/properties/actions";
-import { solarSystemSchema } from "@/server/solar-systems/actions";
-import { jobSchema } from "@/server/jobs/actions";
+import { customerSchema } from "@/server/customers/schema";
+import { propertySchema } from "@/server/properties/schema";
+import { solarSystemSchema } from "@/server/solar-systems/schema";
+import { jobSchema } from "@/server/jobs/schema";
 import { buildIntakeExtractionSchema, type IntakeExtraction } from "@/server/intake/schema";
 import { buildIntakeSystemPrompt } from "@/server/intake/prompt";
 
