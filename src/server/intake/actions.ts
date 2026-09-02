@@ -102,10 +102,16 @@ export async function extractIntakeAction(
       ].join("\n"),
     });
     extraction = result.object;
-  } catch {
+  } catch (err) {
     // Never surface the raw SDK/Anthropic error to the browser -- it can
     // include request internals. A flat, generic message is enough for the
-    // user to know to retry or fall back to a manual form.
+    // user to know to retry or fall back to a manual form. The message
+    // alone (never the full error object) is logged server-side so this
+    // failure is diagnosable from Vercel's Runtime Logs.
+    console.error(
+      "AI Intake extraction failed:",
+      err instanceof Error ? err.message : err
+    );
     return { error: "AI extraction failed. Please try again, or enter the record manually." };
   }
 
