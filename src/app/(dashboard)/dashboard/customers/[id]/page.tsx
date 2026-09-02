@@ -2,16 +2,29 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCustomer, listCustomerProperties } from "@/server/customers/queries";
+import {
+  getCustomer,
+  listCustomerProperties,
+  listCustomerPhoneNumbers,
+} from "@/server/customers/queries";
 import { getCurrentUserWithProfile } from "@/server/auth/current-user";
 import { canManageCore } from "@/lib/permissions";
 
+const PHONE_TYPE_LABEL: Record<string, string> = {
+  mobile: "Mobile",
+  home: "Home",
+  work: "Work",
+  other: "Other",
+};
+
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [customer, properties, session] = await Promise.all([
+  const [customer, properties, phoneNumbers, session] = await Promise.all([
     getCustomer(id),
     listCustomerProperties(id),
+    listCustomerPhoneNumbers(id),
     getCurrentUserWithProfile(),
   ]);
 
@@ -52,7 +65,21 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             </div>
             <div>
               <p className="text-muted-foreground">Phone</p>
-              <p>{customer.phone ?? "—"}</p>
+              {phoneNumbers.length === 0 ? (
+                <p>—</p>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {phoneNumbers.map((phone) => (
+                    <li key={phone.id} className="flex items-center gap-2">
+                      <span>{phone.phone_number}</span>
+                      <span className="text-muted-foreground text-xs">
+                        {PHONE_TYPE_LABEL[phone.phone_type] ?? phone.phone_type}
+                      </span>
+                      {phone.is_primary ? <Badge variant="secondary">Primary</Badge> : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             {customer.notes ? (
               <div className="sm:col-span-2">

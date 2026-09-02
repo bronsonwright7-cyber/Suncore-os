@@ -60,6 +60,8 @@ export type UserRole = "OWNER" | "ADMIN" | "OFFICE" | "CREW_LEAD" | "CREW_MEMBER
 
 export type PartnerType = "roofing_partner" | "solar_company" | "other";
 
+export type PhoneType = "mobile" | "home" | "work" | "other";
+
 export type JobEventType =
   | "created"
   | "scheduled"
@@ -134,6 +136,39 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["customers"]["Insert"]>;
         Relationships: [];
+      };
+      customer_phone_numbers: {
+        Row: {
+          id: string;
+          customer_id: string;
+          phone_number: string;
+          phone_type: PhoneType;
+          is_primary: boolean;
+          created_at: string;
+          created_by: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          customer_id: string;
+          phone_number: string;
+          phone_type?: PhoneType;
+          is_primary?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["customer_phone_numbers"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "customer_phone_numbers_customer_id_fkey";
+            columns: ["customer_id"];
+            referencedRelation: "customers";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       properties: {
         Row: {
@@ -855,6 +890,13 @@ export interface Database {
           p_states?: string[] | null;
         };
         Returns: { state: string; job_count: number; approx_revenue: number }[];
+      };
+      fn_replace_customer_phone_numbers: {
+        Args: {
+          p_customer_id: string;
+          p_phones: { phone_number: string; phone_type: PhoneType; is_primary: boolean }[];
+        };
+        Returns: undefined;
       };
       fn_create_intake_records: {
         Args: {
